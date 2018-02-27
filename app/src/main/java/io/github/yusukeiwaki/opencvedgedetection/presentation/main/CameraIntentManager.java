@@ -2,7 +2,6 @@ package io.github.yusukeiwaki.opencvedgedetection.presentation.main;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -69,14 +68,8 @@ class CameraIntentManager {
     public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_TAKE_PHOTO) {
             if (resultCode == Activity.RESULT_OK) {
-                Bitmap imageBitmap = null;
-                try {
-                    imageBitmap = MediaStore.Images.Media.getBitmap(activity.getContentResolver(), imageUri);
-                } catch (IOException e) {
-                    Timber.e(e);
-                }
-                if (imageBitmap != null && imageBitmap.getWidth() > 0 && imageBitmap.getHeight() > 0) {
-                    doCallback(imageBitmap);
+                if (imageUri != null) {
+                    doCallback(imageUri);
                     return true;
                 }
             }
@@ -84,13 +77,13 @@ class CameraIntentManager {
         return false;
     }
 
-    private void doCallback(@NonNull Bitmap bitmap) {
+    private void doCallback(@NonNull Uri imageUri) {
         if (callback != null) {
-            callback.onRenderBitmap(bitmap);
+            callback.onCaptureCamera(imageUri);
         }
     }
 
     public interface Callback {
-        void onRenderBitmap(@NonNull Bitmap bitmap);
+        void onCaptureCamera(@NonNull Uri imageUri);
     }
 }

@@ -20,6 +20,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".presentation.main.MainActivity"/>
+        <activity android:name=".presentation.edge.EdgeDetectionActivity"/>
 
         <provider
             android:name="android.support.v4.content.FileProvider"

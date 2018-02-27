@@ -10,7 +10,9 @@ android {
         versionName "1.0"
         externalNativeBuild {
             cmake {
-                cppFlags ""
+                cppFlags "-frtti -fexceptions"
+                abiFilters 'x86', 'x86_64', 'armeabi', 'armeabi-v7a', 'arm64-v8a', 'mips', 'mips64'
+                arguments "-DpathToProject:STRING=" + project.rootProject.getProjectDir().absolutePath
             }
         }
     }
@@ -28,12 +30,19 @@ android {
             path "CMakeLists.txt"
         }
     }
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['src/main/jniLibs']
+        }
+    }
 }
 
 dependencies {
     implementation project(':launcher_icon')
+    implementation project(':openCVLibrary340')
     implementation 'com.android.support:support-v4:27.0.2'
     implementation 'com.android.support:appcompat-v7:27.0.2'
     implementation 'com.jakewharton.timber:timber:4.6.1'
+    implementation 'com.jakewharton.rxbinding2:rxbinding:2.1.1'
     testImplementation 'junit:junit:4.12'
 }

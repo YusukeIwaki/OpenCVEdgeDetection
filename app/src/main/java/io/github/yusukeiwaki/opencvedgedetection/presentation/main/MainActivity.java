@@ -3,13 +3,16 @@ package io.github.yusukeiwaki.opencvedgedetection.presentation.main;
 import android.content.Context;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
-import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
+import android.view.View.OnClickListener;
 
 import io.github.yusukeiwaki.opencvedgedetection.R;
 import io.github.yusukeiwaki.opencvedgedetection.databinding.ActivityMainBinding;
+import io.github.yusukeiwaki.opencvedgedetection.presentation.edge.EdgeDetectionActivity;
 
 public class MainActivity extends AppCompatActivity {
     public static Intent newIntent(Context context) {
@@ -31,17 +34,20 @@ public class MainActivity extends AppCompatActivity {
         cameraIntentManager = new CameraIntentManager(this, savedInstanceState);
         cameraIntentManager.setCallback(new CameraIntentManager.Callback() {
             @Override
-            public void onRenderBitmap(@NonNull Bitmap bitmap) {
-                binding.imageCameraThumbnail.setImageBitmap(bitmap);
+            public void onCaptureCamera(@NonNull Uri imageUri) {
+                startActivity(EdgeDetectionActivity.newIntent(MainActivity.this, imageUri));
             }
         });
 
         // Example of a call to a native method
-        binding.sampleText.setText(stringFromJNI());
+        binding.buttonCapture.setText(stringFromJNI());
 
-        if (savedInstanceState == null) {
-            cameraIntentManager.dispatchTakePictureIntent();
-        }
+        binding.buttonCapture.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                cameraIntentManager.dispatchTakePictureIntent();
+            }
+        });
     }
 
     @Override
