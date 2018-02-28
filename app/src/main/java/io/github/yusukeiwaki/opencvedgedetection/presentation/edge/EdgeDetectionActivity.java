@@ -17,6 +17,7 @@ import android.widget.TextView;
 import com.jakewharton.rxbinding2.widget.RxSeekBar;
 
 import org.opencv.android.Utils;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
@@ -123,14 +124,21 @@ public class EdgeDetectionActivity extends BaseActivity {
 
     private void canny(double threshold1, double threshold2) {
         Mat src = new Mat(imageBitmap.getHeight(), imageBitmap.getWidth(), CvType.CV_8U);
-        Mat dest = new Mat(imageBitmap.getHeight(), imageBitmap.getWidth(), CvType.CV_8U);
-
         Utils.bitmapToMat(imageBitmap, src);
-        Imgproc.Canny(src, dest, threshold1, threshold2);
+
+        Mat cannyResult = new Mat(imageBitmap.getHeight(), imageBitmap.getWidth(), CvType.CV_8U);
+        Imgproc.Canny(src, cannyResult, threshold1, threshold2);
+        src.release();
+
+        Mat bitwiseResult = new Mat(imageBitmap.getHeight(), imageBitmap.getWidth(), CvType.CV_8U);
+        Core.bitwise_not(cannyResult, bitwiseResult);
+        cannyResult.release();
+
         if (imageBitmap2 == null) {
             imageBitmap2 = imageBitmap.copy(imageBitmap.getConfig(), true);
         }
-        Utils.matToBitmap(dest, imageBitmap2);
+        Utils.matToBitmap(bitwiseResult, imageBitmap2);
+        bitwiseResult.release();
     }
 
     @Override
