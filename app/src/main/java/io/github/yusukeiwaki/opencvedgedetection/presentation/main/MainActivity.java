@@ -21,6 +21,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;
     private CameraIntentManager cameraIntentManager;
+    private GalleryIntentManager galleryIntentManager;
 
     // Used to load the 'native-lib' library on application startup.
     static {
@@ -38,14 +39,27 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(EdgeDetectionActivity.newIntent(MainActivity.this, imageUri));
             }
         });
+        galleryIntentManager = new GalleryIntentManager(this, savedInstanceState);
+        galleryIntentManager.setCallback(new GalleryIntentManager.Callback() {
+            @Override
+            public void onPickImage(@NonNull Uri imageUri) {
+                startActivity(EdgeDetectionActivity.newIntent(MainActivity.this, imageUri));
+            }
+        });
 
         // Example of a call to a native method
-        binding.buttonCapture.setText(stringFromJNI());
+        //binding.buttonCapture.setText(stringFromJNI());
 
         binding.buttonCapture.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
                 cameraIntentManager.dispatchTakePictureIntent();
+            }
+        });
+        binding.buttonPick.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                galleryIntentManager.dispatchPickImageIntent();
             }
         });
     }
@@ -54,12 +68,16 @@ public class MainActivity extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         cameraIntentManager.onSaveInstanceState(outState);
+        galleryIntentManager.onSaveInstanceState(outState);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (cameraIntentManager != null && cameraIntentManager.onActivityResult(requestCode, resultCode, data)) {
             // Result is handled properly in cameraIntentManager.
+            // Nothing to do here.
+        } else if (galleryIntentManager != null && galleryIntentManager.onActivityResult(requestCode, resultCode, data)) {
+            // Result is handled properly in galleryIntentManager.
             // Nothing to do here.
         } else {
             super.onActivityResult(requestCode, resultCode, data);
