@@ -1,9 +1,11 @@
 package io.github.yusukeiwaki.opencvedgedetection.presentation.edge;
 
 import android.app.ProgressDialog;
+import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
+import android.databinding.ObservableInt;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
@@ -12,13 +14,16 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.content.FileProvider;
 import android.support.v4.util.Pair;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
-import android.widget.TextView;
+import android.widget.SeekBar;
 
 import com.jakewharton.rxbinding2.widget.RxSeekBar;
+import com.jakewharton.rxbinding2.widget.SeekBarChangeEvent;
+import com.jakewharton.rxbinding2.widget.SeekBarProgressChangeEvent;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
@@ -36,11 +41,11 @@ import io.github.yusukeiwaki.opencvedgedetection.databinding.ActivityEdgeDetecti
 import io.github.yusukeiwaki.opencvedgedetection.presentation.base.BaseActivity;
 import io.github.yusukeiwaki.opencvedgedetection.util.SimpleAsyncTask.MainThreadCallback;
 import io.reactivex.Observable;
-import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
+import io.reactivex.functions.Predicate;
 import timber.log.Timber;
 
 public class EdgeDetectionActivity extends BaseActivity {
@@ -53,16 +58,21 @@ public class EdgeDetectionActivity extends BaseActivity {
         return intent;
     }
 
+    private EdgeDetectionActivityViewModel viewModel;
     private ActivityEdgeDetectionBinding binding;
-    private Bitmap imageBitmap;
-    private Bitmap imageBitmap2;
     private Disposable seekbarsSubscription;
     private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        viewModel = ViewModelProviders.of(this).get(EdgeDetectionActivityViewModel.class);
         binding = DataBindingUtil.setContentView(this, R.layout.activity_edge_detection);
+        // setViewModelだけではなぜかプログレスがセットされないので↓
+        binding.seekbar1.setProgress(viewModel.seekbarProgress1.get());
+        binding.seekbar2.setProgress(viewModel.seekbarProgress2.get());
+        // setViewModelだけではなぜかプログレスがセットされないので↑
+        binding.setViewModel(viewModel);
         Uri imageUri = parseImageUri();
         if (imageUri != null) {
             Bitmap imageBitmap = null;
@@ -72,14 +82,14 @@ public class EdgeDetectionActivity extends BaseActivity {
                 Timber.e(e);
             }
             if (imageBitmap != null && imageBitmap.getWidth() > 0 && imageBitmap.getHeight() > 0) {
-                binding.image.setImageBitmap(imageBitmap);
-                this.imageBitmap = imageBitmap;
+                viewModel.originalBitmap.set(imageBitmap);
+                binding.invalidateAll();
             }
         }
 
         Observable<Pair<Integer, Integer>> seekBarsAsObservable = Observable.combineLatest(
-                RxSeekBar.userChanges(binding.seekbar1).doOnNext(integerInto(binding.textSeekbar1)),
-                RxSeekBar.userChanges(binding.seekbar2).doOnNext(integerInto(binding.textSeekbar2)),
+                seekbarObservable(binding.seekbar1, viewModel.seekbarProgress1),
+                seekbarObservable(binding.seekbar2, viewModel.seekbarProgress2),
                 new BiFunction<Integer, Integer, Pair<Integer, Integer>>() {
                     @Override
                     public Pair<Integer, Integer> apply(Integer integer, Integer integer2) throws Exception {
@@ -88,18 +98,10 @@ public class EdgeDetectionActivity extends BaseActivity {
                 });
         seekbarsSubscription = seekBarsAsObservable
                 .debounce(300, TimeUnit.MILLISECONDS)
-                .map(new Function<Pair<Integer,Integer>, Boolean>() {
+                .subscribe(new Consumer<Pair<Integer, Integer>>() {
                     @Override
-                    public Boolean apply(Pair<Integer, Integer> integerIntegerPair) throws Exception {
+                    public void accept(Pair<Integer, Integer> integerIntegerPair) throws Exception {
                         canny(integerIntegerPair.first, integerIntegerPair.second);
-                        return true;
-                    }
-                })
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Consumer<Boolean>() {
-                    @Override
-                    public void accept(Boolean aBoolean) throws Exception {
-                        binding.image.setImageBitmap(imageBitmap2);
                     }
                 });
 
@@ -107,14 +109,14 @@ public class EdgeDetectionActivity extends BaseActivity {
             @Override
             public boolean onTouch(View view, MotionEvent motionEvent) {
                 final int action = motionEvent.getAction();
-                if (imageBitmap2 != null) {
-                    if (action == MotionEvent.ACTION_DOWN) {
-                        binding.image.setImageBitmap(imageBitmap);
-                    } else if (action == MotionEvent.ACTION_MOVE) {
-                        // do nothing.
-                    } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
-                        binding.image.setImageBitmap(imageBitmap2);
-                    }
+                if (action == MotionEvent.ACTION_DOWN) {
+                    viewModel.touched.set(true);
+                    binding.invalidateAll();
+                } else if (action == MotionEvent.ACTION_MOVE) {
+                    // do nothing.
+                } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                    viewModel.touched.set(false);
+                    binding.invalidateAll();
                 }
                 return true;
             }
@@ -123,8 +125,9 @@ public class EdgeDetectionActivity extends BaseActivity {
         binding.buttonShare.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (imageBitmap2 != null) {
-                    saveAndShare(imageBitmap2);
+                Bitmap processedBitmap = viewModel.processedBitmap.get();
+                if (processedBitmap != null) {
+                    saveAndShare(processedBitmap);
                 }
             }
         });
@@ -134,11 +137,20 @@ public class EdgeDetectionActivity extends BaseActivity {
         progressDialog.setCancelable(false);
     }
 
-    private Consumer<Integer> integerInto(final TextView textView) {
+    /**
+     * RxSeekbar.userChangesは初期値が通知されないため、初期値を手動でconcatしたObservable.
+     */
+    private Observable<Integer> seekbarObservable(final SeekBar seekbar, ObservableInt field) {
+        return Observable.just(seekbar.getProgress())
+                .concatWith(RxSeekBar.userChanges(seekbar))
+                .doOnNext(updateSeekbarProgressInto(field));
+    }
+
+    private Consumer<Integer> updateSeekbarProgressInto(final ObservableInt field) {
         return new Consumer<Integer>() {
             @Override
-            public void accept(Integer integer) throws Exception {
-                textView.setText(Integer.toString(integer));
+            public void accept(Integer progress) throws Exception {
+                field.set(progress);
             }
         };
     }
@@ -153,22 +165,28 @@ public class EdgeDetectionActivity extends BaseActivity {
     }
 
     private void canny(double threshold1, double threshold2) {
-        Mat src = new Mat(imageBitmap.getHeight(), imageBitmap.getWidth(), CvType.CV_8U);
-        Utils.bitmapToMat(imageBitmap, src);
+        Bitmap originalBitmap = viewModel.originalBitmap.get();
+        Bitmap processedBitmap = viewModel.processedBitmap.get();
 
-        Mat cannyResult = new Mat(imageBitmap.getHeight(), imageBitmap.getWidth(), CvType.CV_8U);
+        Mat src = new Mat(originalBitmap.getHeight(), originalBitmap.getWidth(), CvType.CV_8U);
+        Utils.bitmapToMat(originalBitmap, src);
+
+        Mat cannyResult = new Mat(originalBitmap.getHeight(), originalBitmap.getWidth(), CvType.CV_8U);
         Imgproc.Canny(src, cannyResult, threshold1, threshold2);
         src.release();
 
-        Mat bitwiseResult = new Mat(imageBitmap.getHeight(), imageBitmap.getWidth(), CvType.CV_8U);
+        Mat bitwiseResult = new Mat(originalBitmap.getHeight(), originalBitmap.getWidth(), CvType.CV_8U);
         Core.bitwise_not(cannyResult, bitwiseResult);
         cannyResult.release();
 
-        if (imageBitmap2 == null) {
-            imageBitmap2 = imageBitmap.copy(imageBitmap.getConfig(), true);
+        if (processedBitmap == null) {
+            processedBitmap = originalBitmap.copy(originalBitmap.getConfig(), true);
         }
-        Utils.matToBitmap(bitwiseResult, imageBitmap2);
+        Utils.matToBitmap(bitwiseResult, processedBitmap);
         bitwiseResult.release();
+
+        viewModel.processedBitmap.set(processedBitmap);
+        binding.invalidateAll();
     }
 
     private File getFileForOutput() throws IOException {
