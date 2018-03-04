@@ -18,7 +18,10 @@
                 android:layout_height="wrap_content"
                 android:minHeight="64dp"
                 android:textSize="18sp"
-                android:text="写真を撮る"/>
+                android:text="写真を撮る"
+                android:paddingTop="16dp"
+                android:drawableBottom="@drawable/ic_camera_enhance_black_24dp"
+                android:drawablePadding="8dp"/>
 
             <Space
                 android:layout_width="wrap_content"
@@ -30,7 +33,10 @@
                 android:layout_height="wrap_content"
                 android:minHeight="64dp"
                 android:textSize="18sp"
-                android:text="ギャラリーから選択"/>
+                android:paddingTop="16dp"
+                android:text="ギャラリーから選択"
+                android:drawableBottom="@drawable/ic_photo_black_24dp"
+                android:drawablePadding="8dp"/>
         </LinearLayout>
     </FrameLayout>
 </layout>
