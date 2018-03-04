@@ -15,7 +15,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.content.FileProvider;
 import android.support.v4.util.Pair;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -32,6 +31,7 @@ import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import io.github.yusukeiwaki.opencvedgedetection.BuildConfig;
@@ -216,10 +216,11 @@ public class EdgeDetectionActivity extends BaseActivity {
         binding.invalidateAll();
     }
 
-    private @Nullable File getFileForOutput() {
+    private @Nullable File createFileForOutput() {
         File outDir = new File(getCacheDir(), "images");
         if (outDir.exists() || outDir.mkdir()) {
-            return new File(outDir + "/edge.png");
+            String fileName = UUID.randomUUID().toString();
+            return new File(outDir + "/"+fileName+".png");
         } else {
             Timber.e("failed to create image/edge.png in cache dir.");
             return null;
@@ -227,7 +228,7 @@ public class EdgeDetectionActivity extends BaseActivity {
     }
 
     private void saveAndShare(@NonNull Bitmap bitmap) {
-        File outFile = getFileForOutput();
+        File outFile = createFileForOutput();
         if (outFile != null) {
             final Uri uri = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID, outFile);
             viewModel.saveImage(bitmap, outFile, uri);
