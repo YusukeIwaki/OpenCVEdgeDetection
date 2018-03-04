@@ -56,7 +56,7 @@ public class EdgeDetectionActivity extends BaseActivity {
     private ActivityEdgeDetectionBinding binding;
     private Bitmap imageBitmap;
     private Bitmap imageBitmap2;
-    private Disposable seelbarsSubscription;
+    private Disposable seekbarsSubscription;
     private ProgressDialog progressDialog;
 
     @Override
@@ -86,7 +86,7 @@ public class EdgeDetectionActivity extends BaseActivity {
                         return new Pair<>(integer, integer2);
                     }
                 });
-        seelbarsSubscription = seekBarsAsObservable
+        seekbarsSubscription = seekBarsAsObservable
                 .debounce(300, TimeUnit.MILLISECONDS)
                 .map(new Function<Pair<Integer,Integer>, Boolean>() {
                     @Override
@@ -230,9 +230,9 @@ public class EdgeDetectionActivity extends BaseActivity {
 
     @Override
     protected void onDestroy() {
-        if (seelbarsSubscription != null) {
-            seelbarsSubscription.dispose();
-            seelbarsSubscription = null;
+        if (seekbarsSubscription != null) {
+            seekbarsSubscription.dispose();
+            seekbarsSubscription = null;
         }
         super.onDestroy();
     }
