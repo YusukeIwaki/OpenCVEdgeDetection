@@ -1,6 +1,7 @@
 package io.github.yusukeiwaki.opencvedgedetection.presentation.edge;
 
 import android.app.ProgressDialog;
+import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
 import android.content.Intent;
@@ -22,8 +23,6 @@ import android.view.View.OnTouchListener;
 import android.widget.SeekBar;
 
 import com.jakewharton.rxbinding2.widget.RxSeekBar;
-import com.jakewharton.rxbinding2.widget.SeekBarChangeEvent;
-import com.jakewharton.rxbinding2.widget.SeekBarProgressChangeEvent;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
@@ -39,13 +38,11 @@ import io.github.yusukeiwaki.opencvedgedetection.BuildConfig;
 import io.github.yusukeiwaki.opencvedgedetection.R;
 import io.github.yusukeiwaki.opencvedgedetection.databinding.ActivityEdgeDetectionBinding;
 import io.github.yusukeiwaki.opencvedgedetection.presentation.base.BaseActivity;
-import io.github.yusukeiwaki.opencvedgedetection.util.SimpleAsyncTask.MainThreadCallback;
+import io.github.yusukeiwaki.opencvedgedetection.presentation.edge.EdgeDetectionActivityViewModel.SavingState;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Consumer;
-import io.reactivex.functions.Function;
-import io.reactivex.functions.Predicate;
 import timber.log.Timber;
 
 public class EdgeDetectionActivity extends BaseActivity {
@@ -132,9 +129,39 @@ public class EdgeDetectionActivity extends BaseActivity {
             }
         });
 
-        progressDialog = new ProgressDialog(this);
+        viewModel.savingState().observe(this, new Observer<SavingState>() {
+            @Override
+            public void onChanged(@Nullable SavingState savingState) {
+                if (savingState != null && savingState.isInProgress()) {
+                    if (progressDialog == null) {
+                        progressDialog = createProgressDialog();
+                    }
+                    progressDialog.show();
+                } else {
+                    if (progressDialog != null) {
+                        progressDialog.dismiss();
+                        progressDialog = null;
+                    }
+                }
+
+                if (savingState != null && savingState.isSuccess()) {
+                    showShareDialog(savingState.uri);
+                    viewModel.resetSavingState();
+                }
+
+                if (savingState != null && savingState.isError()) {
+                    showError(savingState.error);
+                    viewModel.resetSavingState();
+                }
+            }
+        });
+    }
+
+    private ProgressDialog createProgressDialog() {
+        ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setTitle("保存中...");
         progressDialog.setCancelable(false);
+        return progressDialog;
     }
 
     /**
@@ -189,61 +216,34 @@ public class EdgeDetectionActivity extends BaseActivity {
         binding.invalidateAll();
     }
 
-    private File getFileForOutput() throws IOException {
+    private @Nullable File getFileForOutput() {
         File outDir = new File(getCacheDir(), "images");
         if (outDir.exists() || outDir.mkdir()) {
             return new File(outDir + "/edge.png");
+        } else {
+            Timber.e("failed to create image/edge.png in cache dir.");
+            return null;
         }
-        throw new IOException("failed to create image/edge.png in cache dir.");
     }
 
     private void saveAndShare(@NonNull Bitmap bitmap) {
-        File outFile = null;
-        try {
-            outFile = getFileForOutput();
-        } catch (IOException e) {
-            Timber.e(e);
-        }
+        File outFile = getFileForOutput();
         if (outFile != null) {
             final Uri uri = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID, outFile);
-
-            SaveImageTask task = new SaveImageTask(bitmap, outFile);
-            task.setCallback(new MainThreadCallback(){
-                @Override
-                public void onPreExecute() {
-                    progressDialog.show();
-                }
-
-                @Override
-                public void onSuccess() {
-                    if (isDestroyed()) return;
-
-                    if (uri != null) {
-                        Intent shareIntent = new Intent();
-                        shareIntent.setAction(Intent.ACTION_SEND);
-                        shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
-                        shareIntent.setType("image/png");
-                        startActivity(Intent.createChooser(shareIntent, "共有"));
-                    }
-                    progressDialog.dismiss();
-                }
-
-                @Override
-                public void onError(Exception e) {
-                    if (isDestroyed()) return;
-
-                    progressDialog.dismiss();
-                }
-
-                @Override
-                public void onCancel() {
-                    if (isDestroyed()) return;
-
-                    progressDialog.dismiss();
-                }
-            });
-            task.execute();
+            viewModel.saveImage(bitmap, outFile, uri);
         }
+    }
+
+    private void showShareDialog(Uri uri) {
+        Intent shareIntent = new Intent();
+        shareIntent.setAction(Intent.ACTION_SEND);
+        shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
+        shareIntent.setType("image/png");
+        startActivity(Intent.createChooser(shareIntent, "共有"));
+    }
+
+    private void showError(Exception e) {
+        Timber.e(e);
     }
 
     @Override
@@ -251,6 +251,10 @@ public class EdgeDetectionActivity extends BaseActivity {
         if (seekbarsSubscription != null) {
             seekbarsSubscription.dispose();
             seekbarsSubscription = null;
+        }
+        if (progressDialog != null) {
+            progressDialog.dismiss();
+            progressDialog = null;
         }
         super.onDestroy();
     }
