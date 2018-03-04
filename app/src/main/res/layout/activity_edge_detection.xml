@@ -10,7 +10,6 @@
             android:layout_width="match_parent"
             android:layout_height="0px"
             android:layout_weight="1"
-            android:layout_margin="16dp"
             android:scaleType="centerInside"/>
 
         <LinearLayout
@@ -23,15 +22,14 @@
                 android:layout_width="0px"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:max="255"
+                android:max="320"
                 android:progress="100"/>
 
             <TextView
                 android:id="@+id/text_seekbar1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="100"/>
+                android:layout_marginStart="8dp"/>
         </LinearLayout>
 
         <LinearLayout
@@ -44,22 +42,24 @@
                 android:layout_width="0px"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:max="255"
+                android:max="320"
                 android:progress="200"/>
 
             <TextView
                 android:id="@+id/text_seekbar2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="200"/>
+                android:layout_marginStart="8dp"/>
         </LinearLayout>
 
         <Button
-            android:id="@+id/button_reset"
+            android:id="@+id/button_share"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:minHeight="48dp"
             android:layout_gravity="center_horizontal"
-            android:text="元の画像"/>
+            android:text="共有する"
+            android:drawableStart="@drawable/ic_share_black_24dp"
+            android:drawablePadding="8dp"/>
     </LinearLayout>
 </layout>

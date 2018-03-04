@@ -24,12 +24,12 @@ class CameraIntentManager {
     public CameraIntentManager(Activity activity, @Nullable Bundle savedInstanceState) {
         this.activity = activity;
         if (savedInstanceState != null) {
-            imageUri = savedInstanceState.getParcelable("imageUri");
+            imageUri = savedInstanceState.getParcelable("CameraIntentManager_imageUri");
         }
     }
 
     public void onSaveInstanceState(Bundle outState) {
-        outState.putParcelable("imageUri", imageUri);
+        outState.putParcelable("CameraIntentManager_imageUri", imageUri);
     }
 
     public void setCallback(Callback callback) {

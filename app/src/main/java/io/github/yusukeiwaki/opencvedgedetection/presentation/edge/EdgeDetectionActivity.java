@@ -1,5 +1,6 @@
 package io.github.yusukeiwaki.opencvedgedetection.presentation.edge;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
@@ -9,24 +10,31 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.content.FileProvider;
 import android.support.v4.util.Pair;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.View.OnTouchListener;
 import android.widget.TextView;
 
 import com.jakewharton.rxbinding2.widget.RxSeekBar;
 
 import org.opencv.android.Utils;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import io.github.yusukeiwaki.opencvedgedetection.BuildConfig;
 import io.github.yusukeiwaki.opencvedgedetection.R;
 import io.github.yusukeiwaki.opencvedgedetection.databinding.ActivityEdgeDetectionBinding;
 import io.github.yusukeiwaki.opencvedgedetection.presentation.base.BaseActivity;
+import io.github.yusukeiwaki.opencvedgedetection.util.SimpleAsyncTask.MainThreadCallback;
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
@@ -49,6 +57,7 @@ public class EdgeDetectionActivity extends BaseActivity {
     private Bitmap imageBitmap;
     private Bitmap imageBitmap2;
     private Disposable seelbarsSubscription;
+    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -79,7 +88,6 @@ public class EdgeDetectionActivity extends BaseActivity {
                 });
         seelbarsSubscription = seekBarsAsObservable
                 .debounce(300, TimeUnit.MILLISECONDS)
-                .skip(1)
                 .map(new Function<Pair<Integer,Integer>, Boolean>() {
                     @Override
                     public Boolean apply(Pair<Integer, Integer> integerIntegerPair) throws Exception {
@@ -95,12 +103,35 @@ public class EdgeDetectionActivity extends BaseActivity {
                     }
                 });
 
-        binding.buttonReset.setOnClickListener(new OnClickListener() {
+        binding.image.setOnTouchListener(new OnTouchListener() {
             @Override
-            public void onClick(View view) {
-                binding.image.setImageBitmap(imageBitmap);
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                final int action = motionEvent.getAction();
+                if (imageBitmap2 != null) {
+                    if (action == MotionEvent.ACTION_DOWN) {
+                        binding.image.setImageBitmap(imageBitmap);
+                    } else if (action == MotionEvent.ACTION_MOVE) {
+                        // do nothing.
+                    } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                        binding.image.setImageBitmap(imageBitmap2);
+                    }
+                }
+                return true;
             }
         });
+
+        binding.buttonShare.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (imageBitmap2 != null) {
+                    saveAndShare(imageBitmap2);
+                }
+            }
+        });
+
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setTitle("保存中...");
+        progressDialog.setCancelable(false);
     }
 
     private Consumer<Integer> integerInto(final TextView textView) {
@@ -123,14 +154,78 @@ public class EdgeDetectionActivity extends BaseActivity {
 
     private void canny(double threshold1, double threshold2) {
         Mat src = new Mat(imageBitmap.getHeight(), imageBitmap.getWidth(), CvType.CV_8U);
-        Mat dest = new Mat(imageBitmap.getHeight(), imageBitmap.getWidth(), CvType.CV_8U);
-
         Utils.bitmapToMat(imageBitmap, src);
-        Imgproc.Canny(src, dest, threshold1, threshold2);
+
+        Mat cannyResult = new Mat(imageBitmap.getHeight(), imageBitmap.getWidth(), CvType.CV_8U);
+        Imgproc.Canny(src, cannyResult, threshold1, threshold2);
+        src.release();
+
+        Mat bitwiseResult = new Mat(imageBitmap.getHeight(), imageBitmap.getWidth(), CvType.CV_8U);
+        Core.bitwise_not(cannyResult, bitwiseResult);
+        cannyResult.release();
+
         if (imageBitmap2 == null) {
             imageBitmap2 = imageBitmap.copy(imageBitmap.getConfig(), true);
         }
-        Utils.matToBitmap(dest, imageBitmap2);
+        Utils.matToBitmap(bitwiseResult, imageBitmap2);
+        bitwiseResult.release();
+    }
+
+    private File getFileForOutput() throws IOException {
+        File outDir = new File(getCacheDir(), "images");
+        if (outDir.exists() || outDir.mkdir()) {
+            return new File(outDir + "/edge.png");
+        }
+        throw new IOException("failed to create image/edge.png in cache dir.");
+    }
+
+    private void saveAndShare(@NonNull Bitmap bitmap) {
+        File outFile = null;
+        try {
+            outFile = getFileForOutput();
+        } catch (IOException e) {
+            Timber.e(e);
+        }
+        if (outFile != null) {
+            final Uri uri = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID, outFile);
+
+            SaveImageTask task = new SaveImageTask(bitmap, outFile);
+            task.setCallback(new MainThreadCallback(){
+                @Override
+                public void onPreExecute() {
+                    progressDialog.show();
+                }
+
+                @Override
+                public void onSuccess() {
+                    if (isDestroyed()) return;
+
+                    if (uri != null) {
+                        Intent shareIntent = new Intent();
+                        shareIntent.setAction(Intent.ACTION_SEND);
+                        shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
+                        shareIntent.setType("image/png");
+                        startActivity(Intent.createChooser(shareIntent, "共有"));
+                    }
+                    progressDialog.dismiss();
+                }
+
+                @Override
+                public void onError(Exception e) {
+                    if (isDestroyed()) return;
+
+                    progressDialog.dismiss();
+                }
+
+                @Override
+                public void onCancel() {
+                    if (isDestroyed()) return;
+
+                    progressDialog.dismiss();
+                }
+            });
+            task.execute();
+        }
     }
 
     @Override
