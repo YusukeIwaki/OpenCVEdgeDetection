@@ -8,11 +8,13 @@ import android.content.Intent;
 import android.databinding.DataBindingUtil;
 import android.databinding.ObservableInt;
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.media.ExifInterface;
 import android.support.v4.content.FileProvider;
 import android.support.v4.util.Pair;
 import android.view.MotionEvent;
@@ -30,7 +32,9 @@ import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -79,7 +83,15 @@ public class EdgeDetectionActivity extends BaseActivity {
                 Timber.e(e);
             }
             if (imageBitmap != null && imageBitmap.getWidth() > 0 && imageBitmap.getHeight() > 0) {
-                viewModel.originalBitmap.set(imageBitmap);
+                int rotation = getRotationOf(imageUri);
+                if (rotation == 0) {
+                    viewModel.originalBitmap.set(imageBitmap);
+                } else {
+                    Bitmap rotatedBitmap = createRotatedBitmap(imageBitmap, rotation);
+                    imageBitmap.recycle();
+                    viewModel.originalBitmap.set(rotatedBitmap);
+
+                }
                 binding.invalidateAll();
             }
         }
@@ -155,6 +167,44 @@ public class EdgeDetectionActivity extends BaseActivity {
                 }
             }
         });
+    }
+
+    private int getRotationOf(Uri imageUri) {
+        ExifInterface exifInterface = null;
+        try (InputStream inputStream = getContentResolver().openInputStream(imageUri)) {
+            if (inputStream != null) {
+                exifInterface = new ExifInterface(inputStream);
+            }
+        } catch (FileNotFoundException e) {
+            Timber.e(e);
+        } catch (IOException e) {
+            Timber.e(e);
+        }
+
+        int rotation = 0;
+        if (exifInterface != null) {
+            int orientation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+            switch (orientation) {
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    rotation = 90;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    rotation = 180;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    rotation = 270;
+                    break;
+
+                //TODO: FLIP_VERTICAL, FLIP_HORIZONTALの考慮もする必要があるかも
+            }
+        }
+        return rotation;
+    }
+
+    private Bitmap createRotatedBitmap(Bitmap bitmap, int degrees) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(degrees);
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
     }
 
     private ProgressDialog createProgressDialog() {
