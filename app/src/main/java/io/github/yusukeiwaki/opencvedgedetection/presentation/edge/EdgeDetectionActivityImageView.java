@@ -9,12 +9,12 @@ import android.util.AttributeSet;
 /**
  * EdgeDetectionActivityViewModelをもとにsetImageBitmapするための
  * カスタムImageView
- *
+ * <p>
  * <io.github.yusukeiwaki.opencvedgedetection.presentation.edge.EdgeDetectionActivityImageView
  * layout_width="..."
  * layout_height="..."
  * app:viewModel="@{viewModel}"
-
+ * <p>
  * のように使われる想定
  */
 public class EdgeDetectionActivityImageView extends AppCompatImageView {

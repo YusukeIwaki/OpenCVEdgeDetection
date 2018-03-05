@@ -50,6 +50,11 @@ import io.reactivex.functions.Consumer;
 import timber.log.Timber;
 
 public class EdgeDetectionActivity extends BaseActivity {
+    private EdgeDetectionActivityViewModel viewModel;
+    private ActivityEdgeDetectionBinding binding;
+    private Disposable seekbarsSubscription;
+    private ProgressDialog progressDialog;
+
     public static Intent newIntent(Context context, @NonNull Uri imageUri) {
         Intent intent = new Intent(context, EdgeDetectionActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
@@ -58,11 +63,6 @@ public class EdgeDetectionActivity extends BaseActivity {
         intent.setData(imageUri);
         return intent;
     }
-
-    private EdgeDetectionActivityViewModel viewModel;
-    private ActivityEdgeDetectionBinding binding;
-    private Disposable seekbarsSubscription;
-    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -232,7 +232,8 @@ public class EdgeDetectionActivity extends BaseActivity {
         };
     }
 
-    private @Nullable Uri parseImageUri() {
+    private @Nullable
+    Uri parseImageUri() {
         Intent intent = getIntent();
         if (intent == null) {
             return null;
@@ -266,11 +267,12 @@ public class EdgeDetectionActivity extends BaseActivity {
         binding.invalidateAll();
     }
 
-    private @Nullable File createFileForOutput() {
+    private @Nullable
+    File createFileForOutput() {
         File outDir = new File(getCacheDir(), "images");
         if (outDir.exists() || outDir.mkdir()) {
             String fileName = UUID.randomUUID().toString();
-            return new File(outDir + "/"+fileName+".png");
+            return new File(outDir + "/" + fileName + ".png");
         } else {
             Timber.e("failed to create image/edge.png in cache dir.");
             return null;

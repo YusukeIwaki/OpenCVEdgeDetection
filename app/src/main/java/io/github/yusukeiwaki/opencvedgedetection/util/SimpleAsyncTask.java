@@ -4,26 +4,15 @@ import android.os.AsyncTask;
 
 /**
  * ほぼAsyncTaskだけど
- *
+ * <p>
  * * executeに引数指定はできない
  * * コールバッククラスを分離
- *
+ * <p>
  * というカスタマイズをしたAsyncTask
  */
 public abstract class SimpleAsyncTask extends AsyncTask<Void, Void, Void> {
 
-    public static class MainThreadCallback {
-        public void onPreExecute() {}
-
-        public void onSuccess() {}
-
-        public void onError(Exception e) {}
-
-        public void onCancel() {}
-    }
-
     private MainThreadCallback callback;
-
     private Exception error;
 
     protected abstract void doInBackground() throws Exception;
@@ -85,6 +74,20 @@ public abstract class SimpleAsyncTask extends AsyncTask<Void, Void, Void> {
     private void onCancel() {
         if (callback != null) {
             callback.onCancel();
+        }
+    }
+
+    public static class MainThreadCallback {
+        public void onPreExecute() {
+        }
+
+        public void onSuccess() {
+        }
+
+        public void onError(Exception e) {
+        }
+
+        public void onCancel() {
         }
     }
 }

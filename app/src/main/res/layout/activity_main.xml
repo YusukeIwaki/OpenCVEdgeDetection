@@ -1,27 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout
     xmlns:android="http://schemas.android.com/apk/res/android">
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
         <LinearLayout
             android:layout_width="wrap_content"
-            android:minWidth="240dp"
             android:layout_height="wrap_content"
+            android:orientation="vertical"
             android:layout_gravity="center"
             android:gravity="center"
-            android:orientation="vertical">
+            android:minWidth="240dp">
+
             <Button
                 android:id="@+id/button_capture"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:minHeight="64dp"
-                android:textSize="18sp"
-                android:text="写真を撮る"
                 android:paddingTop="16dp"
                 android:drawableBottom="@drawable/ic_camera_enhance_black_24dp"
-                android:drawablePadding="8dp"/>
+                android:drawablePadding="8dp"
+                android:minHeight="64dp"
+                android:text="写真を撮る"
+                android:textSize="18sp"/>
 
             <Space
                 android:layout_width="wrap_content"
@@ -31,12 +33,12 @@
                 android:id="@+id/button_pick"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:minHeight="64dp"
-                android:textSize="18sp"
                 android:paddingTop="16dp"
-                android:text="ギャラリーから選択"
                 android:drawableBottom="@drawable/ic_photo_black_24dp"
-                android:drawablePadding="8dp"/>
+                android:drawablePadding="8dp"
+                android:minHeight="64dp"
+                android:text="ギャラリーから選択"
+                android:textSize="18sp"/>
         </LinearLayout>
     </FrameLayout>
 </layout>

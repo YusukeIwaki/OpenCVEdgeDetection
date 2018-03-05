@@ -12,8 +12,7 @@ class SaveImageTask extends SimpleAsyncTask {
     private final File outFile;
 
     /**
-     *
-     * @param bitmap 保存したいBitmap。
+     * @param bitmap  保存したいBitmap。
      * @param outFile 保存先。FileProviderで公開されているパスを指定する必要がある。
      */
     public SaveImageTask(Bitmap bitmap, File outFile) {
@@ -23,6 +22,6 @@ class SaveImageTask extends SimpleAsyncTask {
 
     @Override
     protected final void doInBackground() throws Exception {
-        bitmap.compress(Bitmap.CompressFormat.PNG,100, new FileOutputStream(outFile));
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, new FileOutputStream(outFile));
     }
 }
