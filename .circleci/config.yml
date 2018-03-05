@@ -1,0 +1,41 @@
+version: 2
+jobs:
+  build-job:
+    docker:
+      - image: circleci/android:api-27-alpha
+    environment:
+      JVM_OPTS: -Xmx3200m
+      ANDROID_NDK_HOME: /usr/local/android-ndk
+    steps:
+      - checkout
+      - run:
+          name: setup NDK
+          command: |
+            wget https://dl.google.com/android/repository/android-ndk-r14b-linux-x86_64.zip?hl=ja -O ndk.zip
+            unzip ndk.zip
+            sudo mv android-ndk-* /usr/local/android-ndk
+      - run:
+          name: extract OpenCV library
+          command: tar xzvf opencv.tar.gz
+      - run:
+          name: ANDROID_HOME
+          command: echo "sdk.dir="$ANDROID_HOME > local.properties 
+      - run:
+          name: Download Dependencies
+          command: ./gradlew androidDependencies
+      - run:
+          name: Run Lint
+          command: echo ./gradlew lint
+      - run:
+          name: Build APK
+          command: |
+            ./gradlew assembleDebug --stacktrace
+      - store_artifacts:
+          path: app/build/outputs/apk
+          destination: apks
+
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+      - build-job
