@@ -4,31 +4,20 @@ import android.os.AsyncTask;
 
 /**
  * ほぼAsyncTaskだけど
- *
+ * <p>
  * * executeに引数指定はできない
  * * コールバッククラスを分離
- *
+ * <p>
  * というカスタマイズをしたAsyncTask
  */
-public abstract class SimpleAsyncTask extends AsyncTask<Void, Void, Void> {
+public abstract class SimpleAsyncTask<Result> extends AsyncTask<Void, Void, Result> {
 
-    public static class MainThreadCallback {
-        public void onPreExecute() {}
-
-        public void onSuccess() {}
-
-        public void onError(Exception e) {}
-
-        public void onCancel() {}
-    }
-
-    private MainThreadCallback callback;
-
+    private MainThreadCallback<Result> callback;
     private Exception error;
 
-    protected abstract void doInBackground() throws Exception;
+    protected abstract Result doInBackground() throws Exception;
 
-    public void setCallback(MainThreadCallback callback) {
+    public void setCallback(MainThreadCallback<Result> callback) {
         this.callback = callback;
     }
 
@@ -40,14 +29,14 @@ public abstract class SimpleAsyncTask extends AsyncTask<Void, Void, Void> {
     }
 
     @Override
-    protected final Void doInBackground(Void... voids) {
+    protected final Result doInBackground(Void... voids) {
         try {
-            doInBackground();
+            return doInBackground();
         } catch (Exception e) {
             error = e;
             cancel(true);
+            return null;
         }
-        return null;
     }
 
     @Override
@@ -61,18 +50,18 @@ public abstract class SimpleAsyncTask extends AsyncTask<Void, Void, Void> {
     }
 
     @Override
-    protected final void onCancelled(Void result) {
+    protected final void onCancelled(Result result) {
         onCancelled();
     }
 
     @Override
-    protected final void onPostExecute(Void result) {
-        onSuccess();
+    protected final void onPostExecute(Result result) {
+        onSuccess(result);
     }
 
-    private void onSuccess() {
+    private void onSuccess(Result result) {
         if (callback != null) {
-            callback.onSuccess();
+            callback.onSuccess(result);
         }
     }
 
@@ -85,6 +74,20 @@ public abstract class SimpleAsyncTask extends AsyncTask<Void, Void, Void> {
     private void onCancel() {
         if (callback != null) {
             callback.onCancel();
+        }
+    }
+
+    public static class MainThreadCallback<Result> {
+        public void onPreExecute() {
+        }
+
+        public void onSuccess(Result result) {
+        }
+
+        public void onError(Exception e) {
+        }
+
+        public void onCancel() {
         }
     }
 }

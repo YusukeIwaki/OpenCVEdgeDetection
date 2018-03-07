@@ -15,17 +15,17 @@ import io.github.yusukeiwaki.opencvedgedetection.databinding.ActivityMainBinding
 import io.github.yusukeiwaki.opencvedgedetection.presentation.edge.EdgeDetectionActivity;
 
 public class MainActivity extends AppCompatActivity {
-    public static Intent newIntent(Context context) {
-        return new Intent(context, MainActivity.class);
+    // Used to load the 'native-lib' library on application startup.
+    static {
+        System.loadLibrary("native-lib");
     }
 
     private ActivityMainBinding binding;
     private CameraIntentManager cameraIntentManager;
     private GalleryIntentManager galleryIntentManager;
 
-    // Used to load the 'native-lib' library on application startup.
-    static {
-        System.loadLibrary("native-lib");
+    public static Intent newIntent(Context context) {
+        return new Intent(context, MainActivity.class);
     }
 
     @Override
