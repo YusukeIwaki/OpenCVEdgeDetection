@@ -41,22 +41,25 @@ public class RuntimePermissionHelper {
 
     public boolean onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == REQUEST_CODE) {
-            handlePermissionResult(permissions, grantResults);
-            return true;
+            return handlePermissionResult(permissions, grantResults);
         }
         return false;
     }
 
-    private void handlePermissionResult(@NonNull String[] permissions, @NonNull int[] grantResults) {
+    private boolean handlePermissionResult(@NonNull String[] permissions, @NonNull int[] grantResults) {
         int i = 0;
         for (String permission : permissions) {
-            if (PERMISSION.equals(permission) && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
-                notifyPermissionGranted();
-                return;
+            if (PERMISSION.equals(permission)) {
+                if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                    notifyPermissionGranted();
+                } else {
+                    notifyPermissionDenied();
+                }
+                return true;
             }
             i++;
         }
-        notifyPermissionDenied();
+        return false;
     }
 
     private void notifyPermissionGranted() {
