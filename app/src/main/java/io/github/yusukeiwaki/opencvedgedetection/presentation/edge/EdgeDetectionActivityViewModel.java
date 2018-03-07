@@ -34,14 +34,14 @@ public class EdgeDetectionActivityViewModel extends ViewModel {
 
     public void saveImage(Bitmap bitmap, File outFile, final Uri outUri) {
         SaveImageTask task = new SaveImageTask(bitmap, outFile);
-        task.setCallback(new SaveImageTask.MainThreadCallback() {
+        task.setCallback(new SaveImageTask.MainThreadCallback<Void>() {
             @Override
             public void onPreExecute() {
                 savingState.setValue(SavingState.ofInProgress());
             }
 
             @Override
-            public void onSuccess() {
+            public void onSuccess(Void x) {
                 savingState.setValue(SavingState.ofSuccess(outUri));
             }
 

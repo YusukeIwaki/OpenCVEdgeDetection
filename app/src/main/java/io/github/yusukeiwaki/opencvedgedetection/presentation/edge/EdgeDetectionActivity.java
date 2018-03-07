@@ -43,6 +43,7 @@ import io.github.yusukeiwaki.opencvedgedetection.R;
 import io.github.yusukeiwaki.opencvedgedetection.databinding.ActivityEdgeDetectionBinding;
 import io.github.yusukeiwaki.opencvedgedetection.presentation.base.BaseActivity;
 import io.github.yusukeiwaki.opencvedgedetection.presentation.edge.EdgeDetectionActivityViewModel.SavingState;
+import io.github.yusukeiwaki.opencvedgedetection.presentation.saveimage.SaveImageToGalleryActivity;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.BiFunction;
@@ -209,7 +210,7 @@ public class EdgeDetectionActivity extends BaseActivity {
 
     private ProgressDialog createProgressDialog() {
         ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setTitle("保存中...");
+        progressDialog.setMessage("保存中...");
         progressDialog.setCancelable(false);
         return progressDialog;
     }
@@ -292,7 +293,12 @@ public class EdgeDetectionActivity extends BaseActivity {
         shareIntent.setAction(Intent.ACTION_SEND);
         shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
         shareIntent.setType("image/png");
-        startActivity(Intent.createChooser(shareIntent, "共有"));
+
+        Intent saveImageToGalleryIntent = SaveImageToGalleryActivity.newIntent(this, uri);
+
+        Intent chooserIntent = Intent.createChooser(shareIntent, "共有");
+        chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[] { saveImageToGalleryIntent });
+        startActivity(chooserIntent);
     }
 
     private void showError(Exception e) {

@@ -7,7 +7,7 @@ import java.io.FileOutputStream;
 
 import io.github.yusukeiwaki.opencvedgedetection.util.SimpleAsyncTask;
 
-class SaveImageTask extends SimpleAsyncTask {
+class SaveImageTask extends SimpleAsyncTask<Void> {
     private final Bitmap bitmap;
     private final File outFile;
 
@@ -21,7 +21,8 @@ class SaveImageTask extends SimpleAsyncTask {
     }
 
     @Override
-    protected final void doInBackground() throws Exception {
+    protected final Void doInBackground() throws Exception {
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, new FileOutputStream(outFile));
+        return null;
     }
 }

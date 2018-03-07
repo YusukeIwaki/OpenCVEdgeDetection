@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="io.github.yusukeiwaki.opencvedgedetection">
     <uses-feature android:name="android.hardware.camera" android:required="true" />
-
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -32,6 +32,11 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"/>
         </provider>
+
+        <activity
+            android:name=".presentation.saveimage.SaveImageToGalleryActivity"
+            android:label="ギャラリーに保存"
+            android:theme="@style/AppTheme.Translucent.NoTitleBar"/>
     </application>
 
 </manifest>
