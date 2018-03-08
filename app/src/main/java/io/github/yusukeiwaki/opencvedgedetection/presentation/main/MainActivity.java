@@ -6,15 +6,15 @@ import android.databinding.DataBindingUtil;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.view.View.OnClickListener;
 
 import io.github.yusukeiwaki.opencvedgedetection.R;
 import io.github.yusukeiwaki.opencvedgedetection.databinding.ActivityMainBinding;
+import io.github.yusukeiwaki.opencvedgedetection.presentation.base.BaseActivity;
 import io.github.yusukeiwaki.opencvedgedetection.presentation.edge.EdgeDetectionActivity;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends BaseActivity {
     // Used to load the 'native-lib' library on application startup.
     static {
         System.loadLibrary("native-lib");
