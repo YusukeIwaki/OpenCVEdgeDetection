@@ -36,9 +36,10 @@ public class EdgeDetectionActivityImageView extends AppCompatImageView {
             return;
         }
 
-        boolean touched = viewModel.touched.get();
-        Bitmap originalBitmap = viewModel.originalBitmap.get();
-        Bitmap processedBitmap = viewModel.processedBitmap.get();
+        Boolean _touched = viewModel.touched.getValue();
+        boolean touched = _touched == null ? false : _touched;
+        Bitmap originalBitmap = viewModel.originalBitmap.getValue();
+        Bitmap processedBitmap = viewModel.processedBitmap.getValue();
 
         if (processedBitmap == null) {
             if (originalBitmap != null) {

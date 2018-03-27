@@ -1,12 +1,12 @@
 package io.github.yusukeiwaki.opencvedgedetection.presentation.edge;
 
 import android.app.ProgressDialog;
+import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
-import android.databinding.ObservableInt;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.net.Uri;
@@ -71,9 +71,16 @@ public class EdgeDetectionActivity extends BaseActivity {
         viewModel = ViewModelProviders.of(this).get(EdgeDetectionActivityViewModel.class);
         binding = DataBindingUtil.setContentView(this, R.layout.activity_edge_detection);
         // setViewModelだけではなぜかプログレスがセットされないので↓
-        binding.seekbar1.setProgress(viewModel.seekbarProgress1.get());
-        binding.seekbar2.setProgress(viewModel.seekbarProgress2.get());
+        if (viewModel.seekbarProgress1.getValue() == null) {
+            viewModel.seekbarProgress1.setValue(100);
+        }
+        binding.seekbar1.setProgress(viewModel.seekbarProgress1.getValue());
+        if (viewModel.seekbarProgress2.getValue() == null) {
+            viewModel.seekbarProgress2.setValue(200);
+        }
+        binding.seekbar2.setProgress(viewModel.seekbarProgress2.getValue());
         // setViewModelだけではなぜかプログレスがセットされないので↑
+        binding.setLifecycleOwner(this);
         binding.setViewModel(viewModel);
         Uri imageUri = parseImageUri();
         if (imageUri != null) {
@@ -86,14 +93,13 @@ public class EdgeDetectionActivity extends BaseActivity {
             if (imageBitmap != null && imageBitmap.getWidth() > 0 && imageBitmap.getHeight() > 0) {
                 int rotation = getRotationOf(imageUri);
                 if (rotation == 0) {
-                    viewModel.originalBitmap.set(imageBitmap);
+                    viewModel.originalBitmap.setValue(imageBitmap);
                 } else {
                     Bitmap rotatedBitmap = createRotatedBitmap(imageBitmap, rotation);
                     imageBitmap.recycle();
-                    viewModel.originalBitmap.set(rotatedBitmap);
+                    viewModel.originalBitmap.setValue(rotatedBitmap);
 
                 }
-                binding.invalidateAll();
             }
         }
 
@@ -120,12 +126,12 @@ public class EdgeDetectionActivity extends BaseActivity {
             public boolean onTouch(View view, MotionEvent motionEvent) {
                 final int action = motionEvent.getAction();
                 if (action == MotionEvent.ACTION_DOWN) {
-                    viewModel.touched.set(true);
+                    viewModel.touched.setValue(true);
                     binding.invalidateAll();
                 } else if (action == MotionEvent.ACTION_MOVE) {
                     // do nothing.
                 } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
-                    viewModel.touched.set(false);
+                    viewModel.touched.setValue(false);
                     binding.invalidateAll();
                 }
                 return true;
@@ -135,7 +141,7 @@ public class EdgeDetectionActivity extends BaseActivity {
         binding.buttonShare.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                Bitmap processedBitmap = viewModel.processedBitmap.get();
+                Bitmap processedBitmap = viewModel.processedBitmap.getValue();
                 if (processedBitmap != null) {
                     saveAndShare(processedBitmap);
                 }
@@ -218,17 +224,17 @@ public class EdgeDetectionActivity extends BaseActivity {
     /**
      * RxSeekbar.userChangesは初期値が通知されないため、初期値を手動でconcatしたObservable.
      */
-    private Observable<Integer> seekbarObservable(final SeekBar seekbar, ObservableInt field) {
+    private Observable<Integer> seekbarObservable(final SeekBar seekbar, MutableLiveData<Integer> field) {
         return Observable.just(seekbar.getProgress())
                 .concatWith(RxSeekBar.userChanges(seekbar))
                 .doOnNext(updateSeekbarProgressInto(field));
     }
 
-    private Consumer<Integer> updateSeekbarProgressInto(final ObservableInt field) {
+    private Consumer<Integer> updateSeekbarProgressInto(final MutableLiveData<Integer> field) {
         return new Consumer<Integer>() {
             @Override
             public void accept(Integer progress) throws Exception {
-                field.set(progress);
+                field.setValue(progress);
             }
         };
     }
@@ -244,8 +250,8 @@ public class EdgeDetectionActivity extends BaseActivity {
     }
 
     private void canny(double threshold1, double threshold2) {
-        Bitmap originalBitmap = viewModel.originalBitmap.get();
-        Bitmap processedBitmap = viewModel.processedBitmap.get();
+        Bitmap originalBitmap = viewModel.originalBitmap.getValue();
+        Bitmap processedBitmap = viewModel.processedBitmap.getValue();
 
         Mat src = new Mat(originalBitmap.getHeight(), originalBitmap.getWidth(), CvType.CV_8U);
         Utils.bitmapToMat(originalBitmap, src);
@@ -264,7 +270,7 @@ public class EdgeDetectionActivity extends BaseActivity {
         Utils.matToBitmap(bitwiseResult, processedBitmap);
         bitwiseResult.release();
 
-        viewModel.processedBitmap.set(processedBitmap);
+        viewModel.processedBitmap.postValue(processedBitmap);
         binding.invalidateAll();
     }
 

@@ -3,9 +3,6 @@ package io.github.yusukeiwaki.opencvedgedetection.presentation.edge;
 import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.ViewModel;
-import android.databinding.ObservableBoolean;
-import android.databinding.ObservableField;
-import android.databinding.ObservableInt;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.support.annotation.NonNull;
@@ -14,12 +11,12 @@ import android.support.annotation.Nullable;
 import java.io.File;
 
 public class EdgeDetectionActivityViewModel extends ViewModel {
-    public final ObservableInt seekbarProgress1 = new ObservableInt(100);
-    public final ObservableInt seekbarProgress2 = new ObservableInt(200);
+    public final MutableLiveData<Integer> seekbarProgress1 = new MutableLiveData<>();
+    public final MutableLiveData<Integer> seekbarProgress2 = new MutableLiveData<>();
 
-    public final ObservableBoolean touched = new ObservableBoolean(false);
-    public final ObservableField<Bitmap> originalBitmap = new ObservableField<>(null);
-    public final ObservableField<Bitmap> processedBitmap = new ObservableField<>(null);
+    public final MutableLiveData<Boolean> touched = new MutableLiveData<>();
+    public final MutableLiveData<Bitmap> originalBitmap = new MutableLiveData<>();
+    public final MutableLiveData<Bitmap> processedBitmap = new MutableLiveData<>();
     private final MutableLiveData<SavingState> savingState = new MutableLiveData<>();
 
     public final LiveData<SavingState> savingState() {
