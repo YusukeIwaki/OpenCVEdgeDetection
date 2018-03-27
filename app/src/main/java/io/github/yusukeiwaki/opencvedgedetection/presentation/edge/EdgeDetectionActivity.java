@@ -1,7 +1,7 @@
 package io.github.yusukeiwaki.opencvedgedetection.presentation.edge;
 
 import android.app.ProgressDialog;
-import android.arch.lifecycle.MutableLiveData;
+import android.arch.lifecycle.MediatorLiveData;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
@@ -21,9 +21,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
-import android.widget.SeekBar;
-
-import com.jakewharton.rxbinding2.widget.RxSeekBar;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
@@ -36,7 +33,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import io.github.yusukeiwaki.opencvedgedetection.BuildConfig;
 import io.github.yusukeiwaki.opencvedgedetection.R;
@@ -44,16 +40,11 @@ import io.github.yusukeiwaki.opencvedgedetection.databinding.ActivityEdgeDetecti
 import io.github.yusukeiwaki.opencvedgedetection.presentation.base.BaseActivity;
 import io.github.yusukeiwaki.opencvedgedetection.presentation.edge.EdgeDetectionActivityViewModel.SavingState;
 import io.github.yusukeiwaki.opencvedgedetection.presentation.saveimage.SaveImageToGalleryActivity;
-import io.reactivex.Observable;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.BiFunction;
-import io.reactivex.functions.Consumer;
 import timber.log.Timber;
 
 public class EdgeDetectionActivity extends BaseActivity {
     private EdgeDetectionActivityViewModel viewModel;
     private ActivityEdgeDetectionBinding binding;
-    private Disposable seekbarsSubscription;
     private ProgressDialog progressDialog;
 
     public static Intent newIntent(Context context, @NonNull Uri imageUri) {
@@ -70,16 +61,6 @@ public class EdgeDetectionActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         viewModel = ViewModelProviders.of(this).get(EdgeDetectionActivityViewModel.class);
         binding = DataBindingUtil.setContentView(this, R.layout.activity_edge_detection);
-        // setViewModelだけではなぜかプログレスがセットされないので↓
-        if (viewModel.seekbarProgress1.getValue() == null) {
-            viewModel.seekbarProgress1.setValue(100);
-        }
-        binding.seekbar1.setProgress(viewModel.seekbarProgress1.getValue());
-        if (viewModel.seekbarProgress2.getValue() == null) {
-            viewModel.seekbarProgress2.setValue(200);
-        }
-        binding.seekbar2.setProgress(viewModel.seekbarProgress2.getValue());
-        // setViewModelだけではなぜかプログレスがセットされないので↑
         binding.setLifecycleOwner(this);
         binding.setViewModel(viewModel);
         Uri imageUri = parseImageUri();
@@ -103,23 +84,25 @@ public class EdgeDetectionActivity extends BaseActivity {
             }
         }
 
-        Observable<Pair<Integer, Integer>> seekBarsAsObservable = Observable.combineLatest(
-                seekbarObservable(binding.seekbar1, viewModel.seekbarProgress1),
-                seekbarObservable(binding.seekbar2, viewModel.seekbarProgress2),
-                new BiFunction<Integer, Integer, Pair<Integer, Integer>>() {
-                    @Override
-                    public Pair<Integer, Integer> apply(Integer integer, Integer integer2) throws Exception {
-                        return new Pair<>(integer, integer2);
-                    }
-                });
-        seekbarsSubscription = seekBarsAsObservable
-                .debounce(300, TimeUnit.MILLISECONDS)
-                .subscribe(new Consumer<Pair<Integer, Integer>>() {
-                    @Override
-                    public void accept(Pair<Integer, Integer> integerIntegerPair) throws Exception {
-                        canny(integerIntegerPair.first, integerIntegerPair.second);
-                    }
-                });
+        final MediatorLiveData<Pair<Integer, Integer>> seekbarsLiveData = new MediatorLiveData<>();
+        seekbarsLiveData.addSource(viewModel.seekbarProgress1, new Observer<Integer>() {
+            @Override
+            public void onChanged(@Nullable Integer integer) {
+                seekbarsLiveData.postValue(new Pair<>(integer, viewModel.seekbarProgress2.getValue()));
+            }
+        });
+        seekbarsLiveData.addSource(viewModel.seekbarProgress2, new Observer<Integer>() {
+            @Override
+            public void onChanged(@Nullable Integer integer) {
+                seekbarsLiveData.postValue(new Pair<>(viewModel.seekbarProgress1.getValue(), integer));
+            }
+        });
+        seekbarsLiveData.observe(this, new Observer<Pair<Integer, Integer>>() {
+            @Override
+            public void onChanged(@Nullable Pair<Integer, Integer> integerIntegerPair) {
+                canny(integerIntegerPair.first, integerIntegerPair.second);
+            }
+        });
 
         binding.image.setOnTouchListener(new OnTouchListener() {
             @Override
@@ -127,12 +110,10 @@ public class EdgeDetectionActivity extends BaseActivity {
                 final int action = motionEvent.getAction();
                 if (action == MotionEvent.ACTION_DOWN) {
                     viewModel.touched.setValue(true);
-                    binding.invalidateAll();
                 } else if (action == MotionEvent.ACTION_MOVE) {
                     // do nothing.
                 } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
                     viewModel.touched.setValue(false);
-                    binding.invalidateAll();
                 }
                 return true;
             }
@@ -221,24 +202,6 @@ public class EdgeDetectionActivity extends BaseActivity {
         return progressDialog;
     }
 
-    /**
-     * RxSeekbar.userChangesは初期値が通知されないため、初期値を手動でconcatしたObservable.
-     */
-    private Observable<Integer> seekbarObservable(final SeekBar seekbar, MutableLiveData<Integer> field) {
-        return Observable.just(seekbar.getProgress())
-                .concatWith(RxSeekBar.userChanges(seekbar))
-                .doOnNext(updateSeekbarProgressInto(field));
-    }
-
-    private Consumer<Integer> updateSeekbarProgressInto(final MutableLiveData<Integer> field) {
-        return new Consumer<Integer>() {
-            @Override
-            public void accept(Integer progress) throws Exception {
-                field.setValue(progress);
-            }
-        };
-    }
-
     private @Nullable
     Uri parseImageUri() {
         Intent intent = getIntent();
@@ -271,7 +234,6 @@ public class EdgeDetectionActivity extends BaseActivity {
         bitwiseResult.release();
 
         viewModel.processedBitmap.postValue(processedBitmap);
-        binding.invalidateAll();
     }
 
     private @Nullable
@@ -313,10 +275,6 @@ public class EdgeDetectionActivity extends BaseActivity {
 
     @Override
     protected void onDestroy() {
-        if (seekbarsSubscription != null) {
-            seekbarsSubscription.dispose();
-            seekbarsSubscription = null;
-        }
         if (progressDialog != null) {
             progressDialog.dismiss();
             progressDialog = null;

@@ -10,13 +10,18 @@ import android.support.annotation.Nullable;
 
 import java.io.File;
 
-public class EdgeDetectionActivityViewModel extends ViewModel {
-    public final MutableLiveData<Integer> seekbarProgress1 = new MutableLiveData<>();
-    public final MutableLiveData<Integer> seekbarProgress2 = new MutableLiveData<>();
+import io.github.yusukeiwaki.opencvedgedetection.util.BoolLiveData;
+import io.github.yusukeiwaki.opencvedgedetection.util.IntLiveData;
 
-    public final MutableLiveData<Boolean> touched = new MutableLiveData<>();
+public class EdgeDetectionActivityViewModel extends ViewModel {
+    public final IntLiveData seekbarProgress1 = new IntLiveData(100);
+    public final IntLiveData seekbarProgress2 = new IntLiveData(200);
+
+    public final BoolLiveData touched = new BoolLiveData(false);
     public final MutableLiveData<Bitmap> originalBitmap = new MutableLiveData<>();
     public final MutableLiveData<Bitmap> processedBitmap = new MutableLiveData<>();
+
+    public final EdgeDetectionImageBitmapLiveData imageBitmapLiveData = new EdgeDetectionImageBitmapLiveData(touched, originalBitmap, processedBitmap);
     private final MutableLiveData<SavingState> savingState = new MutableLiveData<>();
 
     public final LiveData<SavingState> savingState() {

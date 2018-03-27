@@ -11,12 +11,12 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <io.github.yusukeiwaki.opencvedgedetection.presentation.edge.EdgeDetectionActivityImageView
+        <ImageView
             android:id="@+id/image"
             android:layout_width="match_parent"
             android:layout_height="0px"
             android:layout_weight="1"
-            bind:viewModel="@{viewModel}"
+            bind:imageBitmap="@{viewModel.imageBitmapLiveData}"
             android:scaleType="centerInside"/>
 
         <LinearLayout
@@ -30,7 +30,7 @@
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:max="320"
-                android:progress="@{viewModel.seekbarProgress1}"/>
+                android:progress="@={viewModel.seekbarProgress1}"/>
 
             <TextView
                 android:layout_width="wrap_content"
@@ -50,7 +50,7 @@
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:max="320"
-                android:progress="@{viewModel.seekbarProgress2}"/>
+                android:progress="@={viewModel.seekbarProgress2}"/>
 
             <TextView
                 android:layout_width="wrap_content"
